@@ -15,8 +15,10 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     centos63_config.vm.provision "chef_solo" do |chef| 
       chef.log_level = "debug"
       chef.cookbooks_path = ["cookbooks"]
-      chef.add_recipe "oracle-db-component"
-      chef.add_recipe "oracle-db-component::user_create"
+      chef.add_recipe "oracle_db_component"
+      chef.add_recipe "oracle_db_component::user_create"
+      chef.add_recipe "oracle_db_component::sql_query"
+      chef.add_recipe "oracle_db_component::file_query"
         chef.json = {
           "oracle_db" => {
              "url" => "https://s3.amazonaws.com/ab-atg/oracle-xe-11.2.0-1.0.x86_64.rpm.zip",
@@ -31,7 +33,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
                "username" => "testuser",
                 "password" => "!23TestPass",
                 "permissions" => ["all"]
-            }
+            },
+            "sql_row" => "select 1 from dual",
+            "sql_url" => ["https://dl.dropboxusercontent.com/u/250836/oracle_sql.sql"]
           }
         }
     end

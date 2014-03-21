@@ -9,7 +9,9 @@ default[:oracle_db_component][:db][:sid] = "XE"
 
 default[:oracle_db_component][:schema][:username] = nil
 default[:oracle_db_component][:schema][:password] = nil
-default[:oracle_db_component][:schema][:hostname] = node[:oracle_db_component][:db][:host]
+default[:oracle_db_component][:schema][:host] = node[:oracle_db_component][:db][:host]
 default[:oracle_db_component][:schema][:port] = node[:oracle_db_component][:db][:port]
 default[:oracle_db_component][:schema][:permissions] = nil
 default[:oracle_db_component][:schema][:sid] = node[:oracle_db_component][:db][:sid]
+default[:oracle_db_component][:sql_uri] = nil
+default[:oracle_db_component][:sql_row] = nil

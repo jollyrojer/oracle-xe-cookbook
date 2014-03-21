@@ -2,13 +2,6 @@
 # LWPR for Oracle DB user management
 #
 
-def load_current_resource
-  Gem.clear_paths
-  require 'oci8'
-  @current_resource = Chef::Resource::OracleDatabaseUser.new(@new_resource.name)
-  @current_resource.username(@new_resource.name)
-  @current_resource
-end
 
 def close
   @db.close rescue nil
@@ -33,6 +26,7 @@ def exists?
 end
 
 action :create do
+  require 'oci8'
   unless exists?
     begin
       Chef::Log.info("Createing Oracle database user [#{@new_resource.username}]")
@@ -48,6 +42,7 @@ action :create do
 end
 
 action :drop do
+  require 'oci8'
   if exists?
     begin
       Chef::Log.info("Droping Oracle database user [#{@new_resource.username}]")
@@ -61,6 +56,7 @@ action :drop do
 end
 
 action :grant do
+  require 'oci8'
   begin
     if (/(\A\*[0-9A-F]{40}\z)/i).match(@new_resource.password) then
       password = filtered = "PASSWORD '#{$1}'"
