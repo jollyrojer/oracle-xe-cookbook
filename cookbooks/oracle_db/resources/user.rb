@@ -2,7 +2,7 @@
 # Resource for Oracle DB user management
 #
 
-actions :create, :drop, :grant, :query
+actions :create, :drop, :grant
 
 attribute :connection, :kind_of => Hash, :default => {}
 attribute :username, :kind_of => String, :name_attribute => true

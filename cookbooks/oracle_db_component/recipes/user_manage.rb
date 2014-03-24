@@ -13,11 +13,7 @@ ENV["NLS_LANG"] = "#{node[:oracle_db][:nls_lang]}"
 oracle_db_user node[:oracle_db_component][:schema][:username] do
   connection node[:oracle_db_component][:db]
   password node[:oracle_db_component][:schema][:password]
-  action :create
+  privileges node[:oracle_db_component][:schema][:permissions]
+  action Array(node[:oracle_db_component][:schema][:action])
 end
 
-oracle_db_user node[:oracle_db_component][:schema][:username] do
-  connection node[:oracle_db_component][:db]
-  privileges node[:oracle_db_component][:schema][:permissions]
-  action :grant
-end

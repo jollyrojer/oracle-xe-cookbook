@@ -46,7 +46,7 @@ action :drop do
   if exists?
     begin
       Chef::Log.info("Droping Oracle database user [#{@new_resource.username}]")
-      db.exec("DROP USER #{@new_resource.username}")
+      db.exec("DROP USER #{@new_resource.username} CASCADE")
       Chef::Log.info("Oracle database user [#{@new_resource.username}]: dropped")
       @new_resource.updated_by_last_action(true)
     ensure

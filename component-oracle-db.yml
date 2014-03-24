@@ -1,0 +1,181 @@
+application:
+  configuration:
+    input.oracledb-admin-pass: "123QweAsd"
+    input.oracledb-admin-uri-port: 8080
+    input.oracledb-listener-port: 1521
+    input.oracledb-xe-zip: "https://s3.amazonaws.com/ab-atg/oracle-xe-11.2.0-1.0.x86_64.rpm.zip"
+    input.image: "us-east-1/ami-bf5021d6"
+    input.image-user: "root"
+    input.instance-size: "m1.small"
+    input.recipe-url: "https://dl.dropboxusercontent.com/u/250836/oracle-db-cookbooks.tar.gz"
+
+  interfaces:
+    input:
+      oracledb-admin-pass: "bind(workflow#input.oracledb-admin-pass)"
+      oracledb-admin-uri-port: "bind(workflow#input.oracledb-admin-uri-port)"
+      oracledb-listener-port: "bind(workflow#input.oracledb-listener-port)"
+      oracledb-xe-zip: "bind(workflow#input.oracledb-xe-zip)"
+      image: "bind(workflow#input.image)"
+      image-user: "bind(workflow#input.image-user)"
+      instance-size: "bind(workflow#input.instance-size)"
+      recipe-url: "bind(workflow#input.recipe-url)"
+    management:
+      user-management: "bind(workflow#actions.user-management)"
+      file-query: "bind(workflow#actions.file-query)"
+      sql-query: "bind(workflow#actions.sql-query)"
+    output:
+      db-hosts: "bind(workflow#result.oracledb-hosts)"
+      db-port: "bind(workflow#result.listener-port)"
+      web-management: "bind(workflow#result.admin-uri)"
+
+  components:
+    workflow:
+      type: workflow.Instance
+      interfaces:
+        input:
+          oracledb-admin-pass: configuration(string)
+          oracledb-admin-uri-port: configuration(int)
+          oracledb-xe-zip: configuration(string)
+          oracledb-listener-port: configuration(int)
+          image: configuration(string)
+          image-user: configuration(string)
+          instance-size: configuration(string)
+          recipe-url: configuration(string)
+        actions:
+          user-management: receive-command(string oracledb-username, string oracledb-user-password, list<string> oracledb-user-privileges, list<string> oracledb-user-mangement-action)
+          file-query: receive-command(list<string> sql-url, string oracledb-username, string oracledb-user-password)
+          sql-query: receive-command(string sql-row, string oracledb-username, string oracledb-user-password)
+        result:
+          oracledb-hosts: publish-signal(list<string>)
+          listener-port: publish-signal(int)
+          admin-uri: publish-signal(string)
+      configuration:
+        configuration.workflows:
+          launch:
+            parameters:
+              - oracledb-admin-pass:
+                  description: Oracle-DB admin password
+              - oracledb-admin-uri-port:
+                  description: Oracle-DB admin URL port
+              - oracledb-listener-port:
+                  description: Oracle-DB listener port
+              - oracledb-xe-zip:
+                  description: URL to oracle-db-xe zip source
+              - image:
+                  description: AMI id
+              - image-user:
+                  description: User for ssh connection
+              - instance-size:
+                  description: Instance type
+              - recipe-url:
+                  description: Chefsolo recipe URL
+            steps:
+              - launch-vm:
+                  action: provisionVms
+                  parameters:
+                    hardwareId: "{$.instance-size}"
+                    imageId: "{$.image}"
+                    vmIdentity: "{$.image-user}"
+                    roleName: default
+                  output:
+                    oracledb-hosts: ips
+
+              - install-oracle-db:
+                  action: chefsolo
+                  precedingPhases: [ launch-vm ]
+                  parameters:
+                    roles: [ default ]
+                    recipeUrl: "{$.recipe-url}"
+                    runList: [ "recipe[oracle_db_component::default]" ]
+                    jattrs:
+                      oracle_db:
+                        url: "{$.oracledb-xe-zip}"
+                        installation_dir: "/opt/oracle_xe"
+                        tmp_dir: "/opt/tmp"
+                        swap_dir: "/opt"
+                        xe_config:
+                          admin_password: "{$.oracledb-admin-pass}"
+                          http_port: "{$.oracledb-admin-uri-port}"
+                          listener_port: "{$.oracledb-listener-port}"
+            return:
+              oracledb-hosts:
+                value: "{$.oracledb-hosts}"
+              admin-uri:
+                value: "http://{$.oracledb-hosts[0]}:{$.oracledb-admin-uri-port}/apex"
+              listener-port:
+                value: "{$.oracledb-listener-port}"
+
+          user-management:
+            parameters:
+              - oracledb-user-mangement-action:
+                  description: Create, grant, drop
+              - oracledb-username:
+                  description: DB user name
+              - oracledb-user-password:
+                  description: DB user password
+              - oracledb-user-privileges:
+                  description: DB user privileges
+            steps:
+              - user-manage:
+                  action: "chefsolo"
+                  parameters:
+                    roles: [default]
+                    runList: ["recipe[oracle_db_component::user_manage]"]
+                    recipeUrl: "{$.recipe-url}"
+                    jattrs:
+                      oracle_db_component:
+                        db:
+                          admin_password: "{$.oracledb-admin-pass}"
+                          listener_port: "{$.oracledb-listener-port}"
+                        schema:
+                          username: "{$.oracledb-username}"
+                          password: "{$.oracledb-user-password}"
+                          permissions: "{$.oracledb-user-privileges}"
+                          action: "{$.oracledb-user-mangement-action}"
+
+          file-query:
+            parameters:
+              - sql-url:
+                  description: URL to Oracle sql files # file must have
+                  # 1st line - WHENEVER SQLERROR EXIT SQL.SQLCODE
+                  # last line - exit;
+              - oracledb-username:
+                  description: User to run query with
+              - oracledb-user-password:
+                  description: Users's password to run query
+            steps:
+              - run-file-query:
+                  action: "chefsolo"
+                  parameters:
+                    roles: [default]
+                    runList: ["recipe[oracle_db_component::file_query]"]
+                    recipeUrl: "{$.recipe-url}"
+                    jattrs:
+                      oracle_db_component:
+                        schema:
+                          username: "{$.oracledb-username}"
+                          password: "{$.oracledb-user-password}"
+                          port: "{$.oracledb-listener-port}"
+                        sql_url: "{$.sql-url}"
+          sql-query:
+            parameters:
+              - sql-row:
+                  description: Single row query #Should not have ";" symbol in the end of row
+              - oracledb-username:
+                  description: User to run query with
+              - oracledb-user-password:
+                  description: Users's password to run query
+            steps:
+              - sql-row-query:
+                  action: "chefsolo"
+                  parameters:
+                    roles: [default]
+                    runList: ["recipe[oracle_db_component::sql_query]"]
+                    recipeUrl: "{$.recipe-url}"
+                    jattrs:
+                      oracle_db_component:
+                        schema:
+                          username: "{$.oracledb-username}"
+                          password: "{$.oracledb-user-password}"
+                          port: "{$.oracledb-listener-port}"
+                        sql_row: "{$.sql-row}"
