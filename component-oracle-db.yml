@@ -1,8 +1,8 @@
 application:
   configuration:
-    input.oracledb-admin-pass: "123QweAsd"
-    input.oracledb-admin-uri-port: 8080
-    input.oracledb-listener-port: 1521
+    input.db-root-password: "123QweAsd"
+    input.admin-uri-port: "8080"
+    input.db-port: 1521
     input.oracledb-xe-zip: "https://s3.amazonaws.com/ab-atg/oracle-xe-11.2.0-1.0.x86_64.rpm.zip"
     input.image: "us-east-1/ami-bf5021d6"
     input.image-user: "root"
@@ -11,53 +11,57 @@ application:
 
   interfaces:
     input:
-      oracledb-admin-pass: "bind(workflow#input.oracledb-admin-pass)"
-      oracledb-admin-uri-port: "bind(workflow#input.oracledb-admin-uri-port)"
-      oracledb-listener-port: "bind(workflow#input.oracledb-listener-port)"
+      db-root-password: "bind(workflow#input.db-root-password)"
+      admin-uri-port: "bind(workflow#input.admin-uri-port)"
+      db-port: "bind(workflow#input.db-port)"
       oracledb-xe-zip: "bind(workflow#input.oracledb-xe-zip)"
       image: "bind(workflow#input.image)"
       image-user: "bind(workflow#input.image-user)"
       instance-size: "bind(workflow#input.instance-size)"
       recipe-url: "bind(workflow#input.recipe-url)"
-    management:
-      user-management: "bind(workflow#actions.user-management)"
+    manage:
+      user: "bind(workflow#actions.user-management)"
+      schema: "bind(workflow#actions.schema-management)"
       file-query: "bind(workflow#actions.file-query)"
       sql-query: "bind(workflow#actions.sql-query)"
     output:
-      db-hosts: "bind(workflow#result.oracledb-hosts)"
-      db-port: "bind(workflow#result.listener-port)"
+      db-host: "bind(workflow#result.db-host)"
+      db-port: "bind(workflow#result.db-port)"
       web-management: "bind(workflow#result.admin-uri)"
+      dbms: "bind(workflow#result.dbms)"
 
   components:
     workflow:
       type: workflow.Instance
       interfaces:
         input:
-          oracledb-admin-pass: configuration(string)
-          oracledb-admin-uri-port: configuration(int)
+          db-root-password: configuration(string)
+          db-port: configuration(int)
           oracledb-xe-zip: configuration(string)
-          oracledb-listener-port: configuration(int)
+          admin-uri-port: configuration(string)
           image: configuration(string)
           image-user: configuration(string)
           instance-size: configuration(string)
           recipe-url: configuration(string)
         actions:
-          user-management: receive-command(string oracledb-username, string oracledb-user-password, list<string> oracledb-user-privileges, list<string> oracledb-user-mangement-action)
-          file-query: receive-command(list<string> sql-url, string oracledb-username, string oracledb-user-password)
-          sql-query: receive-command(string sql-row, string oracledb-username, string oracledb-user-password)
+          user-management: receive-command(string db-user, string db-user-password, list<string> db-user-privileges, list<string> db-user-mangement-action)
+          schema-management: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
+          file-query: receive-command(list<string> sql-url, object connection)
+          sql-query: receive-command(string sql-row, string db-user, string db-user-password)
         result:
-          oracledb-hosts: publish-signal(list<string>)
-          listener-port: publish-signal(int)
+          db-host: publish-signal(string)
+          db-port: publish-signal(int)
           admin-uri: publish-signal(string)
+          dbms: publish-signal(object)
       configuration:
         configuration.workflows:
           launch:
             parameters:
-              - oracledb-admin-pass:
+              - db-root-password:
                   description: Oracle-DB admin password
-              - oracledb-admin-uri-port:
+              - admin-uri-port:
                   description: Oracle-DB admin URL port
-              - oracledb-listener-port:
+              - db-port:
                   description: Oracle-DB listener port
               - oracledb-xe-zip:
                   description: URL to oracle-db-xe zip source
@@ -78,7 +82,7 @@ application:
                     vmIdentity: "{$.image-user}"
                     roleName: default
                   output:
-                    oracledb-hosts: ips
+                    db-host: ips
 
               - install-oracle-db:
                   action: chefsolo
@@ -94,26 +98,35 @@ application:
                         tmp_dir: "/opt/tmp"
                         swap_dir: "/opt"
                         xe_config:
-                          admin_password: "{$.oracledb-admin-pass}"
-                          http_port: "{$.oracledb-admin-uri-port}"
-                          listener_port: "{$.oracledb-listener-port}"
+                          admin_password: "{$.db-root-password}"
+                          http_port: "{$.admin-uri-port}"
+                          listener_port: "{$.db-port}"
             return:
-              oracledb-hosts:
-                value: "{$.oracledb-hosts}"
+              db-host:
+                value: "{$.db-host[0]}"
+              db-port:
+                value: "{$.db-port}"
               admin-uri:
-                value: "http://{$.oracledb-hosts[0]}:{$.oracledb-admin-uri-port}/apex"
-              listener-port:
-                value: "{$.oracledb-listener-port}"
+                value: "http://{$.db-host[0]}:{$.admin-uri-port}/apex"
+              dbms:
+                value:
+                  db-admin-uri: "oracle://system:{$.db-root-password}@{$.db-host[0]}:{$.db-port}/XE"
+                  db-type: "oracle"
+                  db-root-user: "system"
+                  db-root-password: "{$.db-root-password}"
+                  db-host: "{$.db-host[0]}"
+                  db-port: "{$.db-port}"
+                  db-name: "XE"
 
           user-management:
             parameters:
-              - oracledb-user-mangement-action:
+              - db-user-mangement-action:
                   description: Create, grant, drop
-              - oracledb-username:
+              - db-user:
                   description: DB user name
-              - oracledb-user-password:
+              - db-user-password:
                   description: DB user password
-              - oracledb-user-privileges:
+              - db-user-privileges:
                   description: DB user privileges
             steps:
               - user-manage:
@@ -125,13 +138,52 @@ application:
                     jattrs:
                       oracle_db_component:
                         db:
-                          admin_password: "{$.oracledb-admin-pass}"
-                          listener_port: "{$.oracledb-listener-port}"
+                          admin_password: "{$.db-root-password}"
+                          listener_port: "{$.db-port}"
                         schema:
-                          username: "{$.oracledb-username}"
-                          password: "{$.oracledb-user-password}"
-                          permissions: "{$.oracledb-user-privileges}"
-                          action: "{$.oracledb-user-mangement-action}"
+                          username: "{$.db-user}"
+                          password: "{$.db-user-password}"
+                          permissions: "{$.db-user-privileges}"
+                          action: "{$.db-user-mangement-action}"
+          schema-management:
+            parameters:
+              - db-user:
+                  description: DB user name
+              - db-user-password:
+                  description: DB user password
+              - db-user-privileges:
+                  description: DB user privileges
+            steps:
+              - user-manage:
+                  action: "chefsolo"
+                  parameters:
+                    roles: [default]
+                    runList: ["recipe[oracle_db_component::user_manage]"]
+                    recipeUrl: "{$.recipe-url}"
+                    jattrs:
+                      oracle_db_component:
+                        db:
+                          admin_password: "{$.db-root-password}"
+                          listener_port: "{$.db-port}"
+                        schema:
+                          username: "{$.db-user}"
+                          password: "{$.db-user-password}"
+                          permissions: "{$.db-user-privileges}"
+                          action: ["create", "grant"]
+            return:
+              connection:
+                value:
+                  db-admin-uri: "oracle://{$.db-user}:{$.db-user-password}@{$.db-host}:{$.db-port}/XE"
+                  db-type: "oracle"
+                  db-name: "XE"
+                  db-user: "{$.db-user}"
+                  db-user-password: "{$.db-user-password}"
+                  db-host: "{$.db-host}"
+                  db-port: "{$.db-port}"
+                  db-driver: "oracle.jdbc.driver.OracleDriver"
+                  db-dstype: "javax.sql.DataSource"
+                  connection-url: "jdbc:oracle:thin:@{db-host}:{$.db-port}:XE"
+                  validation-query: "select 1 from dual"
 
           file-query:
             parameters:
@@ -139,10 +191,8 @@ application:
                   description: URL to Oracle sql files # file must have
                   # 1st line - WHENEVER SQLERROR EXIT SQL.SQLCODE
                   # last line - exit;
-              - oracledb-username:
-                  description: User to run query with
-              - oracledb-user-password:
-                  description: Users's password to run query
+              - connection:
+                  description: Connection info
             steps:
               - run-file-query:
                   action: "chefsolo"
@@ -153,17 +203,18 @@ application:
                     jattrs:
                       oracle_db_component:
                         schema:
-                          username: "{$.oracledb-username}"
-                          password: "{$.oracledb-user-password}"
-                          port: "{$.oracledb-listener-port}"
+                          username: "{$.connection.db-user}"
+                          password: "{$.connection.db-user-password}"
+                          port: "{$.connection.db-port}"
                         sql_url: "{$.sql-url}"
+
           sql-query:
             parameters:
               - sql-row:
                   description: Single row query #Should not have ";" symbol in the end of row
-              - oracledb-username:
+              - db-user:
                   description: User to run query with
-              - oracledb-user-password:
+              - db-user-password:
                   description: Users's password to run query
             steps:
               - sql-row-query:
@@ -175,7 +226,7 @@ application:
                     jattrs:
                       oracle_db_component:
                         schema:
-                          username: "{$.oracledb-username}"
-                          password: "{$.oracledb-user-password}"
-                          port: "{$.oracledb-listener-port}"
+                          username: "{$.db-user}"
+                          password: "{$.db-user-password}"
+                          port: "{$.db-port}"
                         sql_row: "{$.sql-row}"
