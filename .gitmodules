@@ -1,0 +1,9 @@
+[submodule "cookbooks/swap"]
+	path = cookbooks/swap
+	url = https://github.com/sethvargo-cookbooks/swap.git
+[submodule "cookbooks/oracle_db"]
+	path = cookbooks/oracle_db
+	url = git@github.com:jollyrojer/oracle_db.git
+[submodule "cookbooks/oracle_db_component"]
+	path = cookbooks/oracle_db_component
+	url = git@github.com:jollyrojer/oracle_db_component.git
