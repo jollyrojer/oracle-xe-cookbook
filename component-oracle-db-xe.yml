@@ -4,10 +4,10 @@ application:
     input.admin-uri-port: "8080"
     input.db-port: 1521
     input.oracledb-xe-zip: "https://s3.amazonaws.com/ab-atg/oracle-xe-11.2.0-1.0.x86_64.rpm.zip"
-    input.image: "us-east-1/ami-bf5021d6"
-    input.image-user: "root"
+    input.image: "us-east-1/ami-1ba18d72"
+    input.image-user: "ec2-user"
     input.instance-size: "m1.small"
-    input.recipe-url: "https://dl.dropboxusercontent.com/u/250836/oracle-db-cookbooks.tar.gz"
+    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/jollyrojer/component-oracle-db-xe-cookbooks-stable-4d04e2e.tar.gz"
 
   interfaces:
     input:
