@@ -7,7 +7,7 @@ application:
     input.image: "us-east-1/ami-1ba18d72"
     input.image-user: "ec2-user"
     input.instance-size: "m1.small"
-    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/jollyrojer/component-oracle-db-xe-cookbooks-stable-4d04e2e.tar.gz"
+    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/jollyrojer/component-oracle-db-xe-cookbooks-stable-5248e53.tar.gz"
 
   interfaces:
     input:
@@ -44,7 +44,7 @@ application:
           instance-size: configuration(string)
           recipe-url: configuration(string)
         actions:
-          user-management: receive-command(string db-user, string db-user-password, list<string> db-user-privileges, list<string> db-user-mangement-action)
+          user-management: receive-command(string db-user, string db-user-password, list<string> db-user-privileges, list<string> db-user-management-action)
           schema-management: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
           file-query: receive-command(list<string> sql-url, object connection)
           sql-query: receive-command(string sql-row, string db-user, string db-user-password)
@@ -120,7 +120,7 @@ application:
 
           user-management:
             parameters:
-              - db-user-mangement-action:
+              - db-user-management-action:
                   description: Create, grant, drop
               - db-user:
                   description: DB user name
@@ -144,7 +144,7 @@ application:
                           username: "{$.db-user}"
                           password: "{$.db-user-password}"
                           permissions: "{$.db-user-privileges}"
-                          action: "{$.db-user-mangement-action}"
+                          action: "{$.db-user-management-action}"
           schema-management:
             parameters:
               - db-user:

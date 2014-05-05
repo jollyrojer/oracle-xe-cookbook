@@ -9,6 +9,6 @@ version           '0.1.0'
   supports os
 end
 
-%w{ swap secure_manager }.each do |cb|
+%w{ swap }.each do |cb|
   depends cb
 end
