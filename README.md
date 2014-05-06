@@ -23,7 +23,7 @@ Configurations
 [![Build Status](https://travis-ci.org/qubell-bazaar/component-oracle-db-xe.png?branch=master)](https://travis-ci.org/qubell-bazaar/component-oracle-db-xe)
 
  - Oracle Database XE 11g, CentOS 6.4 (us-east-1/ami-bf5021d6), AWS EC2 m1.small, root
- - Oracle Database XE 11g, CentOS 6.4 (us-east-1/ami-1ba18d72), AWS EC2 m1.small, ec2-user
+ - Oracle Database XE 11g, Amazon Linux (us-east-1/ami-1ba18d72), AWS EC2 m1.small, ec2-user
 
 Pre-requisites
 --------------
