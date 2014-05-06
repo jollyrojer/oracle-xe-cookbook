@@ -26,4 +26,4 @@ bin/*
 .kitchen.local.yml
 
 berks/
-component-oracle-db.yml.bak
+component-oracle-db-xe.yml.bak
