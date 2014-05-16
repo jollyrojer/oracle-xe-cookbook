@@ -1,0 +1,28 @@
+language: ruby
+rvm:
+- 1.9.3
+gemfile:
+- Gemfile
+env:
+  global:
+  - ARTIFACTS_AWS_REGION=us-east-1
+  - ARTIFACTS_S3_BUCKET=qubell-starter-kit-artifacts
+  - QUBELL_TENANT=https://express.qubell.com
+  - PROVIDER_TYPE=aws-ec2
+  - PROVIDER_REGION=us-east-1
+  - secure: jrV0y0UPvWcaRxMhMCcOj8tNTksW5iVXOQq7kVgxIS32amgKZ8uAuQMkA1YEVH+UKEWppYNSfh5HB7yBzmlbRYtUUSWriUbi7nTXK1GHYBIwrPQKqhnxrX3yMEQpuCkm0N2ZJK738AMop8u37U753OERi/qHrgOyt3I3fawO4fY=
+  - secure: Eo829UxcEbTrKzzH22rPoRSSsGXg9nAfZq1Gb0axxyzaM+ijnfX/cMGSR0doSjPnqfCtn8DVXRH6EiW4YTfMLHXf/6QoJhtklYkBVacgzMBjTCkg3WwenllBLB3baNM90zC4ZwZnryzKinyO+iIhxs3cympUssCeTChR/4XAGlg=
+  - secure: jxP2cVgyywN5zRpJEHdxQY6r/vPAO8p5zRfQJD2K7F2qCYoqU28S+lri4/n6AskZtzpHDaiNRH/gYaa+y5bQZvdkfmas4v4yDqhFnT9ApTf/UN/bsmGroroHVIDas3WSnb2VZlaMNS5u4xVsqAYsrvEZmv35VVan/HWXcyAkZmE=
+  - secure: ddPl1BYlxSEZBeEdPtgslTtPAmOfMXcxQ7DqS1bwguuJhEcX18hBP3ABkGyQNutfVku3O8YwTOh10a/81vW59XzK0S33EOU59ZopwCQCHMFJudOuFHOPnzivHHPV+7LyXuBH+p+xeLoonymW03nDTYLw72mZnnxD1wvJT6HPYlk=
+  - secure: NigC2px/Qj/LQMXsFQJS0j6FNhOxEa6kAD+twompJqwouronROx1o5AAdnt15wKp/KFH4VnYaKuX5gMbW7TyEWvpzbpck1CAJMraamk60kEAyWbl5q292mkilckKSEdpn4o1lnGvhgILUr7llBJ8SvMuivSxJ0guSoajeDvHlzc=
+  - secure: M0lbqD7ODgUXBOaJEKH6R6VTLH4JHsOSj0Qal6ACr9SqP2/VpOLgb8Pbj5hTyZjioBCPKh8Tp4SzUMv0E0J30PORAS3JxQekWm+rJJjM6gYcZnUAnBTpK6eFbvlP0fwqQa/jzOHdSI7EiQI9nlz39dv7ZJXn//wQDD7BZyOuJFE=
+  - secure: IF/bzMPlRpOVpTJdF7hu3VNZkpp42h44LtUww2k10KGOE8rbF39qxxCtFLvt6F8d7LeaRzBRuiVXbXuooXctw/T7kyEGni5nEEnBBGUjg7yq4gcgR0JNbsb/9bKW2G6X4WmeQ7N6MJVTDfXLMv6QLHFbCCxSoUIPKqFrdGDOwMg=
+install:
+- sudo apt-get -y -q install python-pip
+- sudo pip install -r test/requirements.txt
+before_script:
+- gem install --version 2.0.15 berkshelf --no-ri --no-rdoc
+- gem install --version 0.8.9 faraday --no-ri --no-rdoc
+- gem install travis-artifacts --no-ri --no-rdoc
+- git submodule update --init --recursive
+script: ./build.sh
