@@ -24,7 +24,9 @@ class OracleDBTestCase(BaseComponentTestCase):
         "name": name,
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
     }]
-
+    @classmethod
+    def timeout(cls):
+        return 25
     @instance(byApplication=name)
     @values({"db-port": "port", "db-host": "host"})
     def test_port(self, instance, host, port):
