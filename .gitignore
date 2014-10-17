@@ -25,5 +25,8 @@ bin/*
 .kitchen/
 .kitchen.local.yml
 
+
+.lime-env/
+report.xml
 berks/
 component-oracle-db-xe.yml.bak
