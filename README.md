@@ -1,14 +1,14 @@
 Oracle Database XE
 =====
 
-Version 1.0-33p
+Version 1.1-35p
 -------------
 
 ![](http://www.oracle.com/ocom/groups/public/@otn/documents/digitalasset/123455.gif)
 
 Installs and configures Oracle Database 11g XE.
 
-[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/component-oracle-db-xe/1.0-33p/meta.yml)
+[![Install](https://raw.github.com/qubell-bazaar/component-skeleton/master/img/install.png)](https://express.qubell.com/applications/upload?metadataUrl=https://raw.github.com/qubell-bazaar/component-oracle-db-xe/1.1-35p/meta.yml)
 
 Features
 --------
