@@ -3,7 +3,7 @@ kit:
   link: https://github.com/qubell-bazaar/component-oracle-db-xe 
   applications:
     - name: "Database"
-      manifest: https://raw.github.com/qubell-bazaar/component-oracle-db-xe/1.1-35p/component-oracle-db-xe.yml
+      manifest: https://raw.github.com/qubell-bazaar/component-oracle-db-xe/2.0-36p/component-oracle-db-xe.yml
   provider:
     name: "Qubell"
     link: http://qubell.com

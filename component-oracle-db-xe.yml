@@ -4,7 +4,7 @@ application:
     configuration.admin-uri-port: "8080"
     configuration.db-port: 1521
     configuration.oracledb-xe-zip: "https://s3.amazonaws.com/ab-atg/oracle-xe-11.2.0-1.0.x86_64.rpm.zip"
-    configuration.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-oracle-db-xe-cookbooks-stable-782f28a.tar.gz"
+    configuration.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-oracle-db-xe-cookbooks-stable-be2de0c.tar.gz"
     compute.hardwareId: "m1.small"
     compute.imageId:    "ami-bf5021d6"
     compute.login:      "root"
