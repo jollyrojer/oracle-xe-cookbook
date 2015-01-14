@@ -1,7 +1,7 @@
 simplejson
 pyaml
-requests
 PyYAML
+requests
 testtools
 nose
 nose_xunitmp

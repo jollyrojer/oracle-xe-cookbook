@@ -1,61 +1,120 @@
 application:
   configuration:
-    input.db-root-password: "123QweAsd"
-    input.admin-uri-port: "8080"
-    input.db-port: 1521
-    input.oracledb-xe-zip: "https://s3.amazonaws.com/ab-atg/oracle-xe-11.2.0-1.0.x86_64.rpm.zip"
-    input.image: "us-east-1/ami-1ba18d72"
-    input.image-user: "ec2-user"
-    input.instance-size: "m1.small"
-    input.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-oracle-db-xe-cookbooks-stable-b5f0a87.tar.gz"
-
+    configuration.db-root-password: "123QweAsd"
+    configuration.admin-uri-port: "8080"
+    configuration.db-port: 1521
+    configuration.oracledb-xe-zip: "https://s3.amazonaws.com/ab-atg/oracle-xe-11.2.0-1.0.x86_64.rpm.zip"
+    configuration.recipe-url: "https://s3.amazonaws.com/qubell-starter-kit-artifacts/qubell-bazaar/component-oracle-db-xe-cookbooks-stable-782f28a.tar.gz"
+    compute.hardwareId: "m1.small"
+    compute.imageId:    "ami-bf5021d6"
+    compute.login:      "root"
+    compute.locationId: "us-east-1"
   interfaces:
-    input:
-      db-root-password: "bind(workflow#input.db-root-password)"
-      admin-uri-port: "bind(workflow#input.admin-uri-port)"
-      db-port: "bind(workflow#input.db-port)"
-      oracledb-xe-zip: "bind(workflow#input.oracledb-xe-zip)"
-      image: "bind(workflow#input.image)"
-      image-user: "bind(workflow#input.image-user)"
-      instance-size: "bind(workflow#input.instance-size)"
-      recipe-url: "bind(workflow#input.recipe-url)"
-    manage:
+    configuration:
+      "*": "bind(workflow#input.*)"
+    compute:
+      hardwareId: "bind(compute#configuration.hardwareId)"
+      imageId:    "bind(compute#configuration.imageId)"
+      login:      "bind(compute#configuration.login)"
+      locationId: "bind(compute#configuration.locationId)"
+    database:
       user: "bind(workflow#actions.user-management)"
       schema: "bind(workflow#actions.schema-management)"
       file-query: "bind(workflow#actions.file-query)"
       sql-query: "bind(workflow#actions.sql-query)"
-    output:
-      db-host: "bind(workflow#result.db-host)"
-      db-port: "bind(workflow#result.db-port)"
-      web-management: "bind(workflow#result.admin-uri)"
-      dbms: "bind(workflow#result.dbms)"
-
+      "*": "bind(workflow#result.*)"
   components:
     workflow:
       type: workflow.Instance
       interfaces:
         input:
-          db-root-password: configuration(string)
-          db-port: configuration(int)
-          oracledb-xe-zip: configuration(string)
-          admin-uri-port: configuration(string)
-          image: configuration(string)
-          image-user: configuration(string)
-          instance-size: configuration(string)
-          recipe-url: configuration(string)
+          db-root-password:   { type: configuration(string),       name: Database root password    }
+          db-port:            { type: configuration(int),          name: Database listen port      }
+          oracledb-xe-zip:    { type: configuration(string),       name: Oracle rpm url            }
+          admin-uri-port:     { type: configuration(string),       name: Database admin panel port }
+          recipe-url:         { type: configuration(string),       name: Cookbook url              }
+          db-user:            { type: configuration(string),       name: Database user name        }
+          db-user-password:   { type: configuration(string),       name: Database user password    }
+          db-user-privileges: { type: configuration(list<string>), name: Database user privileges  }
+          sql-url:            { type: configuration(list<string>), name: Schema SQL urls           }
+        compute:
+          networks:        consume-signal(map<string, map<string, string>>)
+          exec:            send-command(string command, int timeout => string stdOut, string stdErr => string stdOut, string stdErr, int exitCode)
+          put-file:        send-command(string filename, bytes payload)
+          get-file:        send-command(string filename => bytes payload)
         actions:
           user-management: receive-command(string db-user, string db-user-password, list<string> db-user-privileges, list<string> db-user-management-action)
           schema-management: receive-command(string db-user, string db-user-password, list<string> db-user-privileges => object connection)
           file-query: receive-command(list<string> sql-url, object connection)
           sql-query: receive-command(string sql-row, string db-user, string db-user-password)
         result:
-          db-host: publish-signal(string)
-          db-port: publish-signal(int)
-          admin-uri: publish-signal(string)
-          dbms: publish-signal(object)
+          db-host:             { type: publish-signal(string), name: Database host          }
+          db-port:             { type: publish-signal(int),    name: Database listen port   }
+          db-root-user:        { type: publish-signal(string), name: Database root user     }
+          db-root-password:    { type: publish-signal(string), name: Database root password }
+          db-user:             { type: publish-signal(string), name: Database user          }
+          db-name:             { type: publish-signal(string), name: Database name          }
+          db-user-password:    { type: publish-signal(string), name: Database user password }
+          db-validation-query: { type: publish-signal(string), name: Validation SQL query   }
+          db-connection-url:   { type: publish-signal(string), name: JDBC url               }
+          admin-uri:           { type: publish-signal(string), name: Admin Panel Url        }
+          db-admin-uri:        { type: publish-signal(string), name: DB Admin Url        }
+          db-driver:           { type: publish-signal(string), name: Database driver        }
+          db-dstype:           { type: publish-signal(string), name: DStype                 }
+      required: [ compute ]
       configuration:
+        configuration.triggers:
+          input.db-port:            update
+          input.admin-uri-port:     update
+          input.db-root-password:   update
+          input.db-user:            schema-management
+          input.db-user-password:   schema-management
+          input.db-user-privileges: schema-management
+          input.sql-url:            file-query
+          input.recipe-url:         update
+          compute.networks:         update
+        configuration.propagateStatus: [ update, schema-management, file-query, sql-query ]
         configuration.workflows:
           launch:
+            steps:
+              - update:
+                  action: update
+                  parameters:
+                    db-root-password: "{$.db-root-password}"
+                    admin-uri-port: "{$.admin-uri-port}"
+                    db-port: "{$.db-port}"
+                    oracledb-xe-zip: "{$.oracledb-xe-zip}"
+                    recipe-url: "{$.recipe-url}"
+                    db-user: "{$.db-user}"
+                    db-user-password: "{$.db-user-password}"
+                    db-user-privileges: "{$.db-user-privileges}"
+                  output:
+                    db-host:      db-host
+                    db-port:      db-port
+                    admin-uri:    admin-uri
+                    dbms:         dbms
+                    con:          conn
+              - run-sql:
+                  action: file-query
+                  parameters:
+                    connection: "{$.con}"
+                    sql-url: "{$.sql-url}"
+                  precedingPhases: [ update ]
+            return:
+              db-host:             { value: "{$.db-host}"               }
+              db-port:             { value: "{$.db-port}"               }
+              admin-uri:           { value: "{$.admin-uri}"             }
+              db-admin-uri:        { value: "{$.dbms.db-admin-uri}"             }
+              db-root-user:        { value: "{$.dbms.db-root-user}"                }
+              db-root-password:    { value: "{$.dbms.db-root-password}"            }
+              db-name:             { value: "{$.con.db-name}"               }
+              db-user:             { value: "{$.con.db-user}"               }
+              db-driver:           { value: "{$.con.db-driver}"             }
+              db-dstype:           { value: "{$.con.db-dstype}"             }
+              db-user-password:    { value: "{$.con.db-user-password}"      }
+              db-validation-query: { value: "{$.con.validation-query}"   }
+              db-connection-url:   { value: "{$.con.connection-url}"     }
+          update:
             parameters:
               - db-root-password:
                   description: Oracle-DB admin password
@@ -65,30 +124,24 @@ application:
                   description: Oracle-DB listener port
               - oracledb-xe-zip:
                   description: URL to oracle-db-xe zip source
-              - image:
-                  description: AMI id
-              - image-user:
-                  description: User for ssh connection
-              - instance-size:
-                  description: Instance type
               - recipe-url:
                   description: Chefsolo recipe URL
+              - db-user:
+                  description: DB user name
+              - db-user-password:
+                  description: DB user password
+              - db-user-privileges:
+                  description: DB user privileges
             steps:
-              - launch-vm:
-                  action: provisionVms
-                  parameters:
-                    hardwareId: "{$.instance-size}"
-                    imageId: "{$.image}"
-                    vmIdentity: "{$.image-user}"
-                    roleName: default
+              - get-signals:
+                  action: getSignals
                   output:
-                    db-host: ips
-
+                    signals: result
               - install-oracle-db:
                   action: chefsolo
-                  precedingPhases: [ launch-vm ]
+                  precedingPhases: [ get-signals ]
                   parameters:
-                    roles: [ default ]
+                    roles: [ compute ]
                     recipeUrl: "{$.recipe-url}"
                     runList: [ "recipe[oracle_db_component::default]" ]
                     jattrs:
@@ -101,38 +154,39 @@ application:
                           admin_password: "{$.db-root-password}"
                           http_port: "{$.admin-uri-port}"
                           listener_port: "{$.db-port}"
+              - create-schema:
+                  action: schema-management
+                  precedingPhases: [ install-oracle-db ]
+                  parameters:
+                    db-user: "{$.db-user}"
+                    db-user-password: "{$.db-user-password}"
+                    db-user-privileges: "{$.db-user-privileges}"
+                  output:
+                    connection: connection
             return:
               db-host:
-                value: "{$.db-host[0]}"
+                value: "{$.signals.compute.networks.public.ip}"
               db-port:
                 value: "{$.db-port}"
               admin-uri:
-                value: "http://{$.db-host[0]}:{$.admin-uri-port}/apex"
+                value: "http://{$.signals.compute.networks.public.ip}:{$.admin-uri-port}/apex"
               dbms:
                 value:
-                  db-admin-uri: "oracle://system:{$.db-root-password}@{$.db-host[0]}:{$.db-port}/XE"
+                  db-admin-uri: "oracle://system:{$.db-root-password}@{$.signals.compute.networks.public.ip}:{$.db-port}/XE"
                   db-type: "oracle"
                   db-root-user: "system"
                   db-root-password: "{$.db-root-password}"
-                  db-host: "{$.db-host[0]}"
+                  db-host: "{$.signals.compute.networks.public.ip}"
                   db-port: "{$.db-port}"
                   db-name: "XE"
-
+              conn: 
+                value: "{$.connection}"
           user-management:
-            parameters:
-              - db-user-management-action:
-                  description: Create, grant, drop
-              - db-user:
-                  description: DB user name
-              - db-user-password:
-                  description: DB user password
-              - db-user-privileges:
-                  description: DB user privileges
             steps:
               - user-manage:
                   action: "chefsolo"
                   parameters:
-                    roles: [default]
+                    roles: [compute]
                     runList: ["recipe[oracle_db_component::user_manage]"]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
@@ -154,10 +208,16 @@ application:
               - db-user-privileges:
                   description: DB user privileges
             steps:
+              - get-env-props:
+                  action: getEnvironmentProperties
+                  phase: get-env-props
+                  output:
+                    signals: result
               - user-manage:
                   action: "chefsolo"
+                  precedingPhases: [ get-env-props ]
                   parameters:
-                    roles: [default]
+                    roles: [compute]
                     runList: ["recipe[oracle_db_component::user_manage]"]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
@@ -173,16 +233,16 @@ application:
             return:
               connection:
                 value:
-                  db-admin-uri: "oracle://{$.db-user}:{$.db-user-password}@{$.db-host}:{$.db-port}/XE"
+                  db-admin-uri: "oracle://{$.db-user}:{$.db-user-password}@{$.signals.compute.networks.public.ip}:{$.db-port}/XE"
                   db-type: "oracle"
                   db-name: "XE"
                   db-user: "{$.db-user}"
                   db-user-password: "{$.db-user-password}"
-                  db-host: "{$.db-host}"
+                  db-host: "{$.signals.compute.networks.public.ip}"
                   db-port: "{$.db-port}"
                   db-driver: "oracle.jdbc.driver.OracleDriver"
                   db-dstype: "javax.sql.DataSource"
-                  connection-url: "jdbc:oracle:thin:@{db-host}:{$.db-port}:XE"
+                  connection-url: "jdbc:oracle:thin:@{$.signals.compute.networks.public.ip}:{$.db-port}:XE"
                   validation-query: "select 1 from dual"
 
           file-query:
@@ -194,10 +254,14 @@ application:
               - connection:
                   description: Connection info
             steps:
+              - get-signals:
+                  action: getSignals
+                  output:
+                    signals: result
               - run-file-query:
                   action: "chefsolo"
                   parameters:
-                    roles: [default]
+                    roles: [compute]
                     runList: ["recipe[oracle_db_component::file_query]"]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
@@ -209,18 +273,11 @@ application:
                         sql_url: "{$.sql-url}"
 
           sql-query:
-            parameters:
-              - sql-row:
-                  description: Single row query #Should not have ";" symbol in the end of row
-              - db-user:
-                  description: User to run query with
-              - db-user-password:
-                  description: Users's password to run query
             steps:
               - sql-row-query:
                   action: "chefsolo"
                   parameters:
-                    roles: [default]
+                    roles: [compute]
                     runList: ["recipe[oracle_db_component::sql_query]"]
                     recipeUrl: "{$.recipe-url}"
                     jattrs:
@@ -230,3 +287,7 @@ application:
                           password: "{$.db-user-password}"
                           port: "{$.db-port}"
                         sql_row: "{$.sql-row}"
+    compute:
+      type: compute.Instance
+  bindings:
+   - [workflow#compute, compute]
