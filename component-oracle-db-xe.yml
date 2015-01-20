@@ -33,10 +33,6 @@ application:
           oracledb-xe-zip:    { type: configuration(string),       name: Oracle rpm url            }
           admin-uri-port:     { type: configuration(string),       name: Database admin panel port }
           recipe-url:         { type: configuration(string),       name: Cookbook url              }
-          db-user:            { type: configuration(string),       name: Database user name        }
-          db-user-password:   { type: configuration(string),       name: Database user password    }
-          db-user-privileges: { type: configuration(list<string>), name: Database user privileges  }
-          sql-url:            { type: configuration(list<string>), name: Schema SQL urls           }
         compute:
           networks:        consume-signal(map<string, map<string, string>>)
           exec:            send-command(string command, int timeout => string stdOut, string stdErr => string stdOut, string stdErr, int exitCode)
@@ -50,88 +46,15 @@ application:
         result:
           db-host:             { type: publish-signal(string), name: Database host          }
           db-port:             { type: publish-signal(int),    name: Database listen port   }
-          db-root-user:        { type: publish-signal(string), name: Database root user     }
-          db-root-password:    { type: publish-signal(string), name: Database root password }
-          db-user:             { type: publish-signal(string), name: Database user          }
-          db-name:             { type: publish-signal(string), name: Database name          }
-          db-user-password:    { type: publish-signal(string), name: Database user password }
-          db-validation-query: { type: publish-signal(string), name: Validation SQL query   }
-          db-connection-url:   { type: publish-signal(string), name: JDBC url               }
-          admin-uri:           { type: publish-signal(string), name: Admin Panel Url        }
-          db-admin-uri:        { type: publish-signal(string), name: DB Admin Url        }
-          db-driver:           { type: publish-signal(string), name: Database driver        }
-          db-dstype:           { type: publish-signal(string), name: DStype                 }
+          admin-uri:  { type: publish-signal(string), name: Database management URL}
+          dbms: { type: publish-signal(object), name: DBMS connection details}
+          
       required: [ compute ]
       configuration:
-        configuration.triggers:
-          input.db-port:            update
-          input.admin-uri-port:     update
-          input.db-root-password:   update
-          input.db-user:            schema-management
-          input.db-user-password:   schema-management
-          input.db-user-privileges: schema-management
-          input.sql-url:            file-query
-          input.recipe-url:         update
-          compute.networks:         update
-        configuration.propagateStatus: [ update, schema-management, file-query, sql-query ]
+        configuration.triggers: {}
+        configuration.propagateStatus: [ schema-management, file-query, sql-query ]
         configuration.workflows:
           launch:
-            steps:
-              - update:
-                  action: update
-                  parameters:
-                    db-root-password: "{$.db-root-password}"
-                    admin-uri-port: "{$.admin-uri-port}"
-                    db-port: "{$.db-port}"
-                    oracledb-xe-zip: "{$.oracledb-xe-zip}"
-                    recipe-url: "{$.recipe-url}"
-                    db-user: "{$.db-user}"
-                    db-user-password: "{$.db-user-password}"
-                    db-user-privileges: "{$.db-user-privileges}"
-                  output:
-                    db-host:      db-host
-                    db-port:      db-port
-                    admin-uri:    admin-uri
-                    dbms:         dbms
-                    con:          conn
-              - run-sql:
-                  action: file-query
-                  parameters:
-                    connection: "{$.con}"
-                    sql-url: "{$.sql-url}"
-                  precedingPhases: [ update ]
-            return:
-              db-host:             { value: "{$.db-host}"               }
-              db-port:             { value: "{$.db-port}"               }
-              admin-uri:           { value: "{$.admin-uri}"             }
-              db-admin-uri:        { value: "{$.dbms.db-admin-uri}"             }
-              db-root-user:        { value: "{$.dbms.db-root-user}"                }
-              db-root-password:    { value: "{$.dbms.db-root-password}"            }
-              db-name:             { value: "{$.con.db-name}"               }
-              db-user:             { value: "{$.con.db-user}"               }
-              db-driver:           { value: "{$.con.db-driver}"             }
-              db-dstype:           { value: "{$.con.db-dstype}"             }
-              db-user-password:    { value: "{$.con.db-user-password}"      }
-              db-validation-query: { value: "{$.con.validation-query}"   }
-              db-connection-url:   { value: "{$.con.connection-url}"     }
-          update:
-            parameters:
-              - db-root-password:
-                  description: Oracle-DB admin password
-              - admin-uri-port:
-                  description: Oracle-DB admin URL port
-              - db-port:
-                  description: Oracle-DB listener port
-              - oracledb-xe-zip:
-                  description: URL to oracle-db-xe zip source
-              - recipe-url:
-                  description: Chefsolo recipe URL
-              - db-user:
-                  description: DB user name
-              - db-user-password:
-                  description: DB user password
-              - db-user-privileges:
-                  description: DB user privileges
             steps:
               - get-signals:
                   action: getSignals
@@ -154,15 +77,6 @@ application:
                           admin_password: "{$.db-root-password}"
                           http_port: "{$.admin-uri-port}"
                           listener_port: "{$.db-port}"
-              - create-schema:
-                  action: schema-management
-                  precedingPhases: [ install-oracle-db ]
-                  parameters:
-                    db-user: "{$.db-user}"
-                    db-user-password: "{$.db-user-password}"
-                    db-user-privileges: "{$.db-user-privileges}"
-                  output:
-                    connection: connection
             return:
               db-host:
                 value: "{$.signals.compute.networks.public.ip}"
@@ -179,8 +93,6 @@ application:
                   db-host: "{$.signals.compute.networks.public.ip}"
                   db-port: "{$.db-port}"
                   db-name: "XE"
-              conn: 
-                value: "{$.connection}"
           user-management:
             steps:
               - user-manage:

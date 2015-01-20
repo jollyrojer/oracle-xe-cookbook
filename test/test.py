@@ -20,29 +20,34 @@ class OracleDBTestCase(BaseComponentTestCase):
     name = "component-oracle-db-xe"
     apps = [{
         "name": name,
-        "parameters": {"configuration.db-user": "test", "configuration.db-user-password": "123", "configuration.sql-url": '[]', "configuration.db-user-privileges": '["ALL"]'},
         "file": os.path.realpath(os.path.join(os.path.dirname(__file__), '../%s.yml' % name))
     }]
     @classmethod
     def timeout(cls):
         return 25
     @instance(byApplication=name)
-    def test_port(self, instance):
+    @values({"db-port": "port", "db-host": "host"})
+    def test_port(self, instance, host, port):
         import socket
-        host = instance.returnValues['database.db-host']
-        port = instance.returnValues['database.db-port']
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         result = sock.connect_ex((str(host), int(port)))
 
         assert result == 0
 
     @instance(byApplication=name)
-    def test_check_user_create(self, instance):
+    @workflow("database.user", {
+        "db-user": "test",
+        "db-user-password": "123",
+        "db-user-privileges": '["ALL"]',
+	"db-user-management-action": '["create","grant"]'
+    })
+    @values({"db-host": "host"})
+    def test_check_user_create(self, instance, host):
       import socket
       import requests 
       import pdb
-      host = instance.returnValues['database.db-host']
-      port = instance.returnValues['database.db-port']  
+      
       timeout = 10
       socket.setdefaulttimeout(timeout)
       
